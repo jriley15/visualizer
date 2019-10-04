@@ -2,7 +2,6 @@ import React, { useRef } from "react"
 import { Link } from "gatsby"
 import Image from "../components/image"
 import SEO from "../components/seo"
-import NavBar from "../components/Navbar"
 import { makeStyles } from "@material-ui/core/styles"
 import {
   Typography,
@@ -14,6 +13,7 @@ import {
   Avatar,
   Slide,
 } from "@material-ui/core"
+import Layout from "../components/Layout"
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -34,11 +34,10 @@ const IndexPage = () => {
   const classes = useStyles()
 
   return (
-    <>
+    <Layout>
       <SEO title="Home" />
-      <NavBar />
       <div className={classes.root}>Test Home</div>
-    </>
+    </Layout>
   )
 }
 
