@@ -27,6 +27,8 @@ export default function PathGrid({ children, grid, size }) {
     switch (node.type) {
       case 1:
         return "yellow"
+      case 2:
+        return "blue"
       case 3:
         return "green"
       case 4:
