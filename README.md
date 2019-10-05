@@ -1,1 +1,1 @@
-Personal Blog built with Gatsby
+Algorithm visualizer built with gatsby
