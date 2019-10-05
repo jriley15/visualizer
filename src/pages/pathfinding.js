@@ -19,6 +19,7 @@ export default function GraphTraversal() {
   const classes = useStyles()
   const [grid, setGrid] = useState(new Map())
   const [steps, setSteps] = useState(0)
+  const [path, setPath] = useState(0)
 
   const initGrid = () => {
     let map = new Map()
@@ -31,6 +32,7 @@ export default function GraphTraversal() {
           visited: false,
           distance: Infinity,
           weight: calculateDistance(x, y, size - 2, size - 2),
+          wall: false,
           type: 0,
         })
       }
@@ -57,7 +59,7 @@ export default function GraphTraversal() {
       type: 4,
       label: "F",
     })
-
+    setPath(0)
     setSteps(0)
     setGrid(map)
   }
@@ -88,7 +90,7 @@ export default function GraphTraversal() {
       let node = qElement.element
       if (!node.visited) {
         traversalOrder.push({ x: node.x, y: node.y })
-        //if (node.type === 4) pq = new PriorityQueue()
+
         let currNode = map.get(`${node.x},${node.y}`)
         currNode.visited = true
 
@@ -99,7 +101,7 @@ export default function GraphTraversal() {
         neighbors.push(map.get(`${node.x},${node.y + 1}`))
 
         neighbors.forEach(neighbor => {
-          if (neighbor) {
+          if (neighbor && !neighbor.wall) {
             let alt = node.distance + neighbor.weight
             if (alt < neighbor.distance) {
               let neighborNode = map.get(`${neighbor.x},${neighbor.y}`)
@@ -109,8 +111,11 @@ export default function GraphTraversal() {
             }
           }
         })
+        if (node.type === 4) pq = new PriorityQueue()
       }
     }
+    let iterations = 0
+
     traversalOrder.forEach((node, index) => {
       setTimeout(() => {
         let tempMap = new Map(grid)
@@ -128,9 +133,110 @@ export default function GraphTraversal() {
           while (currentNode && currentNode.type !== 3) {
             if (currentNode.type !== 4) currentNode.type = 2
             currentNode = currentNode.prev
+            iterations++
           }
+          setPath(iterations)
         }
         if (index % size === 0 || index === traversalOrder.length - 1)
+          setGrid(tempMap)
+      }, index)
+    })
+  }
+
+  const AStar = () => {
+    let map = new Map(grid)
+    let goal = map.get(`${size - 2},${size - 2}`)
+    let open = new PriorityQueue()
+    let closed = new Map()
+    let traversalOrder = []
+
+    open.enqueue(map.get("1,1", 0))
+
+    closed.set(`1,1`, 0)
+
+    while (!open.isEmpty()) {
+      let qElement = open.dequeue()
+      let current = qElement.element
+
+      traversalOrder.push({ x: current.x, y: current.y })
+
+      if (current === goal) break
+
+      let neighbors = []
+      let west = map.get(`${current.x - 1},${current.y}`)
+      let east = map.get(`${current.x + 1},${current.y}`)
+      let north = map.get(`${current.x},${current.y - 1}`)
+      let south = map.get(`${current.x},${current.y + 1}`)
+
+      neighbors.push(west)
+      neighbors.push(east)
+      neighbors.push(north)
+      neighbors.push(south)
+
+      let southEast = map.get(`${current.x + 1},${current.y + 1}`)
+      let northWest = map.get(`${current.x - 1},${current.y - 1}`)
+      let southWest = map.get(`${current.x - 1},${current.y + 1}`)
+      let northEast = map.get(`${current.x + 1},${current.y - 1}`)
+
+      if (southEast && (!south || !south.wall) && (!east || !east.wall))
+        neighbors.push(southEast)
+
+      if (northWest && (!north || !north.wall) && (!west || !west.wall))
+        neighbors.push(northWest)
+
+      if (southWest && (!south || !south.wall) && (!west || !west.wall))
+        neighbors.push(southWest)
+
+      if (northEast && (!north || !north.wall) && (!east || !east.wall))
+        neighbors.push(northEast)
+
+      neighbors.forEach(neighbor => {
+        if (neighbor && !neighbor.wall) {
+          let cost =
+            closed.get(`${current.x},${current.y}`) +
+            calculateDistance(current.x, current.y, neighbor.x, neighbor.y)
+
+          if (
+            !closed.get(`${neighbor.x},${neighbor.y}`) ||
+            cost < closed.get(`${neighbor.x},${neighbor.y}`)
+          ) {
+            closed.set(`${neighbor.x},${neighbor.y}`, cost)
+
+            let priority =
+              cost + calculateDistance(neighbor.x, neighbor.y, goal.x, goal.y)
+
+            open.enqueue(neighbor, priority)
+            neighbor.prev = current
+          }
+        }
+      })
+      iterations++
+    }
+
+    let iterations = 0
+
+    traversalOrder.forEach((node, index) => {
+      setTimeout(() => {
+        let tempMap = new Map(grid)
+
+        let tempNode = tempMap.get(`${node.x},${node.y}`)
+        if (tempNode.type === 0) {
+          tempNode.type = 1
+          tempNode.label = index
+        }
+
+        if (index === traversalOrder.length - 1) {
+          setSteps(traversalOrder.length)
+          let currentNode = map.get(`${size - 2},${size - 2}`)
+
+          while (currentNode && currentNode.type !== 3) {
+            if (currentNode.type !== 4) currentNode.type = 2
+            currentNode = currentNode.prev
+            iterations++
+          }
+          setPath(iterations)
+        }
+        if (index % (size / 3) === 0 || index === traversalOrder.length - 1)
           setGrid(tempMap)
       }, index)
     })
@@ -142,8 +248,11 @@ export default function GraphTraversal() {
       <Typography variant="h4" gutterBottom>
         Pathfinding
       </Typography>
-      <PathGrid grid={grid} size={size}>
+      <PathGrid grid={grid} size={size} setGrid={setGrid}>
         {steps > 0 && <Typography>Took {steps} steps to solve!</Typography>}
+        {path > 0 && (
+          <Typography gutterBottom>Shortest path is {path} steps!</Typography>
+        )}
         <Button
           variant="outlined"
           onClick={Dijkstras}
@@ -151,11 +260,7 @@ export default function GraphTraversal() {
         >
           Dijkstra's
         </Button>
-        <Button
-          variant="outlined"
-          onClick={() => {}}
-          className={classes.button}
-        >
+        <Button variant="outlined" onClick={AStar} className={classes.button}>
           A*
         </Button>
         <Button

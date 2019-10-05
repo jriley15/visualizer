@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { makeStyles } from "@material-ui/core/styles"
 
 const useStyles = makeStyles(theme => ({
@@ -17,11 +17,35 @@ const useStyles = makeStyles(theme => ({
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
+    "&:hover": {
+      borderColor: "transparent",
+    },
   },
 }))
 
-export default function PathGrid({ children, grid, size }) {
+export default function PathGrid({ children, grid, size, setGrid }) {
   const classes = useStyles()
+  const [mouseDown, setMouseDown] = useState(false)
+
+  useEffect(() => {
+    const handleDocumentMouseUp = event => {
+      if (event.button !== 2) {
+        setMouseDown(false)
+      }
+    }
+    const handleDocumentMouseDown = event => {
+      if (event.button !== 2) {
+        setMouseDown(true)
+      }
+    }
+
+    document.addEventListener("mouseup", handleDocumentMouseUp)
+    document.addEventListener("mousedown", handleDocumentMouseDown)
+    return () => {
+      document.removeEventListener("mouseup", handleDocumentMouseUp)
+      document.removeEventListener("mousedown", handleDocumentMouseDown)
+    }
+  }, [])
 
   const getCellColor = node => {
     switch (node.type) {
@@ -33,6 +57,20 @@ export default function PathGrid({ children, grid, size }) {
         return "green"
       case 4:
         return "red"
+      case 5:
+        return "purple"
+    }
+  }
+
+  const createWall = (node, drag) => () => {
+    if (!drag || mouseDown) {
+      let map = new Map(grid)
+
+      let tempNode = map.get(`${node.x},${node.y}`)
+
+      tempNode.wall = true
+      tempNode.type = 5
+      setGrid(map)
     }
   }
 
@@ -51,6 +89,8 @@ export default function PathGrid({ children, grid, size }) {
                 backgroundColor: getCellColor(node),
                 color: node.type === 1 ? "black" : "white",
               }}
+              onMouseOver={createWall(node, true)}
+              onClick={createWall(node, false)}
             >
               {node.label}
             </div>
